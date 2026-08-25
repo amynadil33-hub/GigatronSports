@@ -93,6 +93,8 @@ export default function Admin() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [productSearch, setProductSearch] = useState('');
+  const [productTypeFilter, setProductTypeFilter] = useState('all');
+  const [promotionFilter, setPromotionFilter] = useState('all');
   const [catalogView, setCatalogView] = useState<'products' | 'categories' | 'filters'>('products');
 
   const load = async () => {
@@ -116,15 +118,23 @@ export default function Admin() {
     if (user && isAdmin) load();
   }, [user, isAdmin]);
 
+  const productTypes = useMemo(() => Array.from(new Set(
+    products.map((product) => String(product.product_type || '').trim()).filter(Boolean)
+  )).sort((a, b) => a.localeCompare(b)), [products]);
+
   const filteredProducts = useMemo(() => {
     const term = productSearch.trim().toLowerCase();
-    if (!term) return products;
-    return products.filter((p) =>
+    return products.filter((p) => {
+      if (productTypeFilter !== 'all' && String(p.product_type || '').toLowerCase() !== productTypeFilter.toLowerCase()) return false;
+      if (promotionFilter !== 'all' && !(p.tags || []).includes(promotionFilter)) return false;
+      if (!term) return true;
+      return (
       [p.name, p.vendor, p.sku, p.product_type, p.handle]
         .filter(Boolean)
         .some((v: string) => String(v).toLowerCase().includes(term))
-    );
-  }, [products, productSearch]);
+      );
+    });
+  }, [products, productSearch, productTypeFilter, promotionFilter]);
 
 
 
@@ -261,6 +271,26 @@ export default function Admin() {
                       className="py-2.5 text-sm outline-none bg-transparent w-44"
                     />
                   </div>
+                  <select
+                    value={productTypeFilter}
+                    onChange={(e) => setProductTypeFilter(e.target.value)}
+                    aria-label="Filter by product type"
+                    className="bg-white border border-neutral-200 rounded-lg px-3 py-2.5 text-sm font-semibold outline-none"
+                  >
+                    <option value="all">All product types</option>
+                    {productTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                  </select>
+                  <select
+                    value={promotionFilter}
+                    onChange={(e) => setPromotionFilter(e.target.value)}
+                    aria-label="Filter by promotion"
+                    className="bg-white border border-neutral-200 rounded-lg px-3 py-2.5 text-sm font-semibold outline-none"
+                  >
+                    <option value="all">All promotions</option>
+                    <option value="featured">Featured</option>
+                    <option value="new_arrival">New Arrival</option>
+                    <option value="hot_sale">Hot Sale</option>
+                  </select>
                   <button
                     onClick={() => {
                       setEditing(null);
@@ -336,7 +366,7 @@ export default function Admin() {
                                 : 'border-neutral-300 text-neutral-500'
                             }`}
                           >
-                            {t.replace('_', ' ')}
+                            {t.replaceAll('_', ' ')}
                           </button>
                         ))}
                       </div>
