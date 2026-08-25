@@ -39,11 +39,9 @@ const input =
   'w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#FFC21C] focus:ring-2 focus:ring-[#FFC21C]/30';
 
 function Login() {
-  const { signIn } = useAuth();
+  const { signIn, user, isAdmin, signOut } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const mode: 'in' | 'up' = 'in';
-  const setMode = (_mode: 'in' | 'up') => undefined;
   const [msg, setMsg] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -66,12 +64,15 @@ function Login() {
           <input className={input} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           {msg && <p className="text-sm text-[#FF1717]">{msg}</p>}
           <button disabled={loading} className="w-full bg-[#FFC21C] text-[#171717] font-extrabold py-3.5 rounded-xl disabled:opacity-60">
-            {loading ? 'Please wait…' : mode === 'in' ? 'Sign In' : 'Create Account'}
+            {loading ? 'Please wait…' : 'Sign In'}
           </button>
         </form>
-        <button onClick={() => setMode(mode === 'in' ? 'up' : 'in')} className="hidden mt-4 w-full text-xs font-semibold text-neutral-500 hover:text-neutral-900">
-          {mode === 'in' ? 'Need an admin account? Create one' : 'Already have an account? Sign in'}
-        </button>
+        {user && !isAdmin && (
+          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            This account does not have administrator access.
+            <button type="button" onClick={signOut} className="mt-2 block font-bold underline">Sign out</button>
+          </div>
+        )}
         <Link to="/" className="mt-4 block text-center text-xs text-neutral-400 hover:text-neutral-700">
           ← Back to store
         </Link>
@@ -81,7 +82,7 @@ function Login() {
 }
 
 export default function Admin() {
-  const { user, loading, signOut } = useAuth();
+  const { user, loading, isAdmin, signOut } = useAuth();
   const [tab, setTab] = useState('dashboard');
   const [products, setProducts] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
@@ -112,8 +113,8 @@ export default function Admin() {
   };
 
   useEffect(() => {
-    if (user) load();
-  }, [user]);
+    if (user && isAdmin) load();
+  }, [user, isAdmin]);
 
   const filteredProducts = useMemo(() => {
     const term = productSearch.trim().toLowerCase();
@@ -128,7 +129,7 @@ export default function Admin() {
 
 
   if (loading) return <div className="min-h-screen grid place-items-center bg-[#171717] text-white">Loading…</div>;
-  if (!user) return <Login />;
+  if (!user || !isAdmin) return <Login />;
 
   const saveSetting = async (key: string, value: string) => {
     setSettings((s) => ({ ...s, [key]: value }));

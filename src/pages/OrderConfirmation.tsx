@@ -9,20 +9,20 @@ export default function OrderConfirmation() {
   const [params] = useSearchParams();
   const orderNumber = params.get('order') || '';
   const orderId = params.get('id') || '';
+  const orderToken = params.get('token') || '';
   const [order, setOrder] = useState<any>(null);
   const [items, setItems] = useState<any[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
     fetchSettings().then(setSettings);
-    if (!orderId) return;
+    if (!orderId || !orderToken) return;
     (async () => {
-      const { data: o } = await supabase.from('ecom_orders').select('*').eq('id', orderId).maybeSingle();
-      setOrder(o);
-      const { data: it } = await supabase.from('ecom_order_items').select('*').eq('order_id', orderId);
-      setItems(it || []);
+      const { data } = await supabase.rpc('get_order', { p_order_id: orderId, p_token: orderToken });
+      setOrder(data?.order || null);
+      setItems(data?.items || []);
     })();
-  }, [orderId]);
+  }, [orderId, orderToken]);
 
   const addr = order?.shipping_address || {};
 

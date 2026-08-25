@@ -38,55 +38,27 @@ export default function Checkout() {
     setLoading(true);
     setError('');
     try {
-      let customerId: string | null = null;
-      const email = form.email || `${form.mobile.replace(/\D/g, '')}@gigatron.local`;
-      const { data: customer } = await supabase
-        .from('ecom_customers')
-        .insert({ email, name: form.name, phone: form.mobile })
-        .select('id')
-        .maybeSingle();
-      customerId = customer?.id ?? null;
-
-      const orderNumber = `GT-${Math.floor(1000 + Math.random() * 9000)}`;
-      const { data: order, error: orderErr } = await supabase
-        .from('ecom_orders')
-        .insert({
-          customer_id: customerId,
-          status: 'pending',
-          subtotal,
-          tax: 0,
-          shipping: delivery,
-          total,
-          notes: `${orderNumber} | Payment: ${
-            PAYMENT_METHODS.find((p) => p.id === form.payment_method)?.label
-          }${form.notes ? ` | ${form.notes}` : ''}`,
-          shipping_address: {
-            order_number: orderNumber,
-            name: form.name,
-            mobile: form.mobile,
-            email: form.email,
-            address: form.address,
-            city_island: form.city_island,
-            notes: form.notes,
-            payment_method: form.payment_method,
-          },
-        })
-        .select('id')
-        .single();
-      if (orderErr) throw orderErr;
-
       const items = cart.map((i) => ({
-        order_id: order.id,
         product_id: i.product_id,
         variant_id: i.variant_id || null,
-        product_name: i.name,
-        variant_title: i.variant_title || null,
-        sku: i.sku || null,
         quantity: i.quantity,
-        unit_price: i.price,
-        total: i.price * i.quantity,
       }));
-      await supabase.from('ecom_order_items').insert(items);
+      const { data: order, error: orderErr } = await supabase.rpc('place_order', {
+        p_customer: {
+          name: form.name,
+          mobile: form.mobile,
+          email: form.email,
+          address: form.address,
+          city_island: form.city_island,
+          notes: form.notes,
+          payment_method: form.payment_method,
+        },
+        p_items: items,
+        p_notes: `Payment: ${PAYMENT_METHODS.find((p) => p.id === form.payment_method)?.label}${
+          form.notes ? ` | ${form.notes}` : ''
+        }`,
+      });
+      if (orderErr) throw orderErr;
 
       if (form.email) {
         crmSubscribe({
@@ -100,7 +72,7 @@ export default function Checkout() {
       }
 
       clearCart();
-      navigate(`/order-confirmation?order=${orderNumber}&id=${order.id}`);
+      navigate(`/order-confirmation?order=${encodeURIComponent(order.order_number)}&id=${order.id}&token=${order.public_token}`);
     } catch (err: any) {
       setError(err.message || 'Could not place your order. Please try again.');
     } finally {
