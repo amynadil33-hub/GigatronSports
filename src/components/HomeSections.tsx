@@ -1,7 +1,7 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, MapPin, Phone, Facebook, Instagram, Music2, Truck, ShieldCheck, Zap } from 'lucide-react';
-import { Product, Settings, formatMVR, waLink, viberLink } from '@/lib/gigatron';
+import { Product, Settings, formatMVR, waLink, viberLink, SALE_CAMPAIGNS } from '@/lib/gigatron';
 import ProductCard from '@/components/ProductCard';
 import ProductArtwork from '@/components/ProductArtwork';
 
@@ -48,6 +48,42 @@ export function CategoryTabs({ categories, active, onSelect }: { categories: { h
         </button>
       ))}
     </div>
+  );
+}
+
+export function SaleHub({ s }: { s: Settings }) {
+  const sales = SALE_CAMPAIGNS
+    .filter((sale) => s[`sale_${sale.id}_enabled`] !== 'false')
+    .sort((a, b) => Number(s[`sale_${a.id}_order`] || 99) - Number(s[`sale_${b.id}_order`] || 99));
+
+  if (!sales.length) return null;
+
+  return (
+    <section className="bg-[#FFC21C] border-y border-black/10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-7">
+          <div>
+            <span className="text-[11px] font-black uppercase tracking-[0.22em] text-black/55">{s.sales_eyebrow}</span>
+            <h2 className="mt-1.5 text-3xl sm:text-5xl font-black tracking-[-0.045em] text-[#111]">{s.sales_title}</h2>
+          </div>
+          <p className="text-sm font-semibold text-black/60">Fresh ways to save, all in one place.</p>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {sales.map((sale, index) => (
+            <Link
+              key={sale.id}
+              to={s[`sale_${sale.id}_url`] || `/products?sale=${sale.id}`}
+              className={`group relative min-h-36 sm:min-h-40 rounded-2xl p-5 sm:p-6 overflow-hidden border transition duration-300 hover:-translate-y-1 hover:shadow-xl ${index === 0 ? 'bg-[#111] text-white border-[#111]' : 'bg-white text-[#111] border-black/10'}`}
+            >
+              <span className="text-3xl sm:text-4xl" aria-hidden="true">{s[`sale_${sale.id}_emoji`] || sale.emoji}</span>
+              <h3 className="mt-5 text-lg sm:text-xl font-black tracking-tight leading-tight">{s[`sale_${sale.id}_label`] || sale.label}</h3>
+              <span className={`mt-2 inline-flex items-center gap-1 text-xs font-bold ${index === 0 ? 'text-[#FFC21C]' : 'text-black/50 group-hover:text-black'}`}>Shop now <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" /></span>
+              <span className={`absolute -right-6 -bottom-8 h-24 w-24 rounded-full ${index === 0 ? 'bg-[#FFC21C]/20' : 'bg-[#FFC21C]/35'}`} aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 

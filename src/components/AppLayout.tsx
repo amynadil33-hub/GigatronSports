@@ -4,7 +4,7 @@ import { ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { Product, Settings, DEFAULT_SETTINGS, fetchSettings, PRODUCT_SELECT, isSportsProduct } from '@/lib/gigatron';
 import Layout from '@/components/Layout';
-import { Hero, CategoryTabs, SectionHeading, ProductGrid, LatestDrops, SportsPromo, LocationSection } from '@/components/HomeSections';
+import { Hero, CategoryTabs, SectionHeading, ProductGrid, LatestDrops, SportsPromo, LocationSection, SaleHub } from '@/components/HomeSections';
 import { mergeTemporaryShoeCatalogue } from '@/data/shoeCatalogue';
 
 export default function AppLayout() {
@@ -47,6 +47,7 @@ export default function AppLayout() {
 
   return <Layout>
     {settings.hero_enabled !== 'false' && <Hero s={settings} />}
+    {settings.section_sales !== 'false' && <SaleHub s={settings} />}
     {settings.section_latest_drops !== 'false' && <LatestDrops products={latest} />}
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20"><SectionHeading eyebrow="Shop by category" title="FIND YOUR FIT" action={{ label: 'View all products', to: '/products' }} /><CategoryTabs categories={categories} active={activeCat} onSelect={setActiveCat} /><div className="mt-8">{loading ? <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">{Array.from({length:4}).map((_,i)=><div key={i} className="aspect-[3/4] rounded-2xl bg-white animate-pulse" />)}</div> : <ProductGrid products={showcase} />}</div></section>
     {settings.section_promotion !== 'false' && <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-14 sm:pb-20"><SportsPromo /></div>}

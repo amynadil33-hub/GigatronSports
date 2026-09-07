@@ -2,17 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { Product, PRODUCT_SELECT, ProductFilterDefinition, isSportsProduct } from '@/lib/gigatron';
+import { Product, PRODUCT_SELECT, ProductFilterDefinition, isSportsProduct, SALE_CAMPAIGNS, Settings, DEFAULT_SETTINGS, fetchSettings } from '@/lib/gigatron';
 import Layout from '@/components/Layout';
 import { CategoryTabs, ProductGrid } from '@/components/HomeSections';
 import { mergeTemporaryShoeCatalogue } from '@/data/shoeCatalogue';
 
 const PRODUCT_TYPE_FILTER_ID = 'built-in-product-type';
 const PROMOTION_FILTER_ID = 'built-in-promotion';
-const PROMOTION_OPTIONS = [
+const CORE_PROMOTION_OPTIONS = [
   { value: 'featured', label: 'Featured' },
   { value: 'new_arrival', label: 'New Arrival' },
-  { value: 'hot_sale', label: 'Hot Sale' },
 ];
 
 const normalizedValue = (value?: string | null) => String(value || '').trim().toLowerCase();
@@ -32,6 +31,7 @@ export default function Products() {
   const [visible, setVisible] = useState(12);
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
 
   useEffect(() => { (async () => {
     const [p, c, l, f, v] = await Promise.all([
@@ -53,6 +53,16 @@ export default function Products() {
     const vm: Record<string,string[]> = {}; (v.data || []).forEach((x:any)=>{ vm[x.product_id] = [...(vm[x.product_id] || []), x.option_id]; });
     setValueMap(vm); setLoading(false);
   })(); }, []);
+
+  useEffect(() => { fetchSettings().then(setSettings); }, []);
+
+  const promotionOptions = useMemo(() => [
+    ...CORE_PROMOTION_OPTIONS,
+    ...SALE_CAMPAIGNS
+      .filter((sale) => settings[`sale_${sale.id}_enabled`] !== 'false')
+      .sort((a, b) => Number(settings[`sale_${a.id}_order`] || 99) - Number(settings[`sale_${b.id}_order`] || 99))
+      .map((sale) => ({ value: sale.id, label: `${settings[`sale_${sale.id}_emoji`] || sale.emoji} ${settings[`sale_${sale.id}_label`] || sale.label}` })),
+  ], [settings]);
 
   const displayFilters = useMemo<ProductFilterDefinition[]>(() => {
     const productTypes = Array.from(
@@ -91,7 +101,7 @@ export default function Products() {
       display_type: 'checkbox',
       sort_order: -10,
       is_active: true,
-      options: PROMOTION_OPTIONS.map((option, index) => ({
+      options: promotionOptions.map((option, index) => ({
         id: option.value,
         filter_id: PROMOTION_FILTER_ID,
         label: option.label,
@@ -101,7 +111,7 @@ export default function Products() {
       })),
     });
     return [...builtInFilters, ...filters];
-  }, [filters, products]);
+  }, [filters, products, promotionOptions]);
 
   const filtered = useMemo(() => {
     let list = [...products];
@@ -112,6 +122,8 @@ export default function Products() {
     if (selectedTypes.length) list = list.filter((p)=>selectedTypes.includes(normalizedValue(p.product_type)));
     const selectedPromotions = selected[PROMOTION_FILTER_ID] || [];
     if (selectedPromotions.length) list = list.filter((p)=>selectedPromotions.some((tag)=>(p.tags || []).includes(tag)));
+    const sale = params.get('sale');
+    if (sale) list = list.filter((p)=>(p.tags || []).includes(sale));
     const groups = Object.entries(selected)
       .filter(([filterId, ids]) => filterId !== PRODUCT_TYPE_FILTER_ID && filterId !== PROMOTION_FILTER_ID && ids.length)
       .map(([, ids]) => ids);

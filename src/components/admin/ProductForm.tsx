@@ -4,13 +4,16 @@ import { supabase } from '@/lib/supabase';
 import ImageUploader from '@/components/admin/ImageUploader';
 import SpecsEditor, { SpecRow } from '@/components/admin/SpecsEditor';
 import VariantsEditor, { VariantRow } from '@/components/admin/VariantsEditor';
-import { ProductFilterDefinition } from '@/lib/gigatron';
+import { ProductFilterDefinition, SALE_CAMPAIGNS } from '@/lib/gigatron';
 
 const input =
   'w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#FFC21C] focus:ring-2 focus:ring-[#FFC21C]/30';
 const label = 'block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1.5';
 
-export const PROMO_TAGS = ['featured', 'hot_sale', 'new_arrival', 'free_delivery'];
+export const PROMO_TAGS = ['featured', 'new_arrival', 'free_delivery', ...SALE_CAMPAIGNS.map((sale) => sale.id)];
+
+export const promoTagLabel = (tag: string) =>
+  SALE_CAMPAIGNS.find((sale) => sale.id === tag)?.label || tag.replaceAll('_', ' ');
 
 export function slugify(v: string) {
   return v
@@ -436,7 +439,7 @@ export default function ProductForm({ product, collections, onClose, onSaved }: 
                       : 'border-neutral-300 text-neutral-500 hover:border-neutral-900'
                   }`}
                 >
-                  {t.replace('_', ' ')}
+                  {promoTagLabel(t)}
                 </button>
               ))}
             </div>

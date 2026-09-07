@@ -4,6 +4,19 @@ import { supabase } from '@/lib/supabase';
 export const GIGATRON_LOGO =
   'https://d64gsuwffb70l.cloudfront.net/697762a54522891b330bb592_1786211337023_1a605699.jpeg';
 
+export const SALE_CAMPAIGNS = [
+  { id: 'daily_deals', label: 'Daily Deals', emoji: '🔥' },
+  { id: 'weekly_offers', label: 'Weekly Offers', emoji: '⭐' },
+  { id: 'payday_sale', label: 'Payday Sale', emoji: '💰' },
+  { id: 'flash_sale', label: 'Flash Sale', emoji: '⚡' },
+  { id: 'bundle_sale', label: 'Bundle Sale', emoji: '🎁' },
+  { id: 'clearance_sale', label: 'Clearance Sale', emoji: '🏷️' },
+  { id: 'ramadan_sale', label: 'Ramadan Sale', emoji: '🌙' },
+  { id: 'eid_sale', label: 'Eid Sale', emoji: '🎉' },
+] as const;
+
+export type SaleCampaignId = (typeof SALE_CAMPAIGNS)[number]['id'];
+
 export const DEFAULT_SETTINGS: Record<string, string> = {
   business_name: 'Gigatron Sports',
   tagline: 'Built for every move.',
@@ -31,6 +44,18 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   hero_secondary_cta_url: '/products?new=true',
   section_latest_drops: 'true',
   section_promotion: 'true',
+  section_sales: 'true',
+  sales_title: 'SHOP THE LATEST OFFERS',
+  sales_eyebrow: 'Gigatron Sports deals',
+  ...Object.fromEntries(
+    SALE_CAMPAIGNS.flatMap((sale, index) => [
+      [`sale_${sale.id}_label`, sale.label],
+      [`sale_${sale.id}_emoji`, sale.emoji],
+      [`sale_${sale.id}_url`, `/products?sale=${sale.id}`],
+      [`sale_${sale.id}_enabled`, 'true'],
+      [`sale_${sale.id}_order`, String(index + 1)],
+    ])
+  ),
 };
 
 export type Settings = Record<string, string>;

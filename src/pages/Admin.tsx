@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
-import ProductForm, { PROMO_TAGS } from '@/components/admin/ProductForm';
+import ProductForm, { PROMO_TAGS, promoTagLabel } from '@/components/admin/ProductForm';
 import { CategoriesManager, FiltersManager } from '@/components/admin/CatalogManagers';
 import {
   formatMVR,
@@ -24,6 +24,7 @@ import {
   DEFAULT_SETTINGS,
   Settings,
   isSportsProduct,
+  SALE_CAMPAIGNS,
 } from '@/lib/gigatron';
 
 
@@ -366,7 +367,7 @@ export default function Admin() {
                                 : 'border-neutral-300 text-neutral-500'
                             }`}
                           >
-                            {t.replaceAll('_', ' ')}
+                            {promoTagLabel(t)}
                           </button>
                         ))}
                       </div>
@@ -425,7 +426,7 @@ export default function Admin() {
               <h1 className="text-2xl font-black tracking-tight mb-6">{tab === 'homepage' ? 'Homepage' : 'Settings'}</h1>
               <div className="bg-white border border-neutral-200 rounded-2xl p-6 space-y-4 max-w-2xl">
                 {(tab === 'homepage'
-                  ? ['hero_title', 'hero_subtitle', 'hero_image', 'hero_cta_text', 'hero_cta_url', 'hero_secondary_cta_text', 'hero_secondary_cta_url', 'hero_enabled', 'section_latest_drops', 'section_promotion']
+                  ? ['hero_title', 'hero_subtitle', 'hero_image', 'hero_cta_text', 'hero_cta_url', 'hero_secondary_cta_text', 'hero_secondary_cta_url', 'hero_enabled', 'section_latest_drops', 'section_promotion', 'section_sales', 'sales_eyebrow', 'sales_title']
                   : ['business_name', 'tagline', 'phone', 'whatsapp', 'viber', 'email', 'address', 'google_maps_url', 'facebook_url', 'instagram_url', 'tiktok_url', 'currency', 'delivery_message']
                 ).map((k) => (
                   <div key={k}>
@@ -442,6 +443,47 @@ export default function Admin() {
                     )}
                   </div>
                 ))}
+                {tab === 'homepage' && (
+                  <div className="border-t border-neutral-200 pt-6 mt-6">
+                    <div className="mb-4">
+                      <h2 className="font-black text-lg">Sports sale campaigns</h2>
+                      <p className="text-sm text-neutral-500 mt-1">Edit the public label, emoji, destination, visibility and display order. Assign campaigns to products from the Catalogue tab.</p>
+                    </div>
+                    <div className="space-y-4">
+                      {SALE_CAMPAIGNS.map((sale) => (
+                        <div key={sale.id} className="rounded-xl border border-neutral-200 bg-neutral-50 p-4">
+                          <div className="grid sm:grid-cols-[76px_1fr] gap-3">
+                            <div>
+                              <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1.5">Emoji</label>
+                              <input className={input} value={settings[`sale_${sale.id}_emoji`] || ''} onChange={(e) => saveSetting(`sale_${sale.id}_emoji`, e.target.value)} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1.5">Label</label>
+                              <input className={input} value={settings[`sale_${sale.id}_label`] || ''} onChange={(e) => saveSetting(`sale_${sale.id}_label`, e.target.value)} />
+                            </div>
+                          </div>
+                          <div className="grid sm:grid-cols-[1fr_110px_120px] gap-3 mt-3">
+                            <div>
+                              <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1.5">Link</label>
+                              <input className={input} value={settings[`sale_${sale.id}_url`] || ''} onChange={(e) => saveSetting(`sale_${sale.id}_url`, e.target.value)} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1.5">Order</label>
+                              <input type="number" min="1" max="8" className={input} value={settings[`sale_${sale.id}_order`] || ''} onChange={(e) => saveSetting(`sale_${sale.id}_order`, e.target.value)} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1.5">Visibility</label>
+                              <select className={input} value={settings[`sale_${sale.id}_enabled`] || 'true'} onChange={(e) => saveSetting(`sale_${sale.id}_enabled`, e.target.value)}>
+                                <option value="true">Enabled</option>
+                                <option value="false">Disabled</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 <button onClick={persistSettings} className="bg-[#FFC21C] text-[#171717] font-extrabold px-7 py-3.5 rounded-xl">
                   {saved || 'Save Changes'}
                 </button>
