@@ -196,28 +196,45 @@ export const CRM_SUBSCRIBE_URL =
 export const FORM_NOTIFICATION_EMAIL =
   import.meta.env.VITE_FORM_NOTIFICATION_EMAIL || 'gigatronsportsweb.mv@gmail.com';
 
-export async function sendFormEmail(
+export function sendFormEmail(
   subject: string,
   fields: Record<string, string | number | boolean | null | undefined>
 ) {
   try {
-    const response = await fetch(
-      `https://formsubmit.co/ajax/${encodeURIComponent(FORM_NOTIFICATION_EMAIL)}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
-        body: JSON.stringify({
-          _subject: subject,
-          _template: 'table',
-          _captcha: 'false',
-          ...fields,
-        }),
-      }
-    );
-    return response.ok;
+    const targetName = `gigatron-email-${Date.now()}`;
+    const iframe = document.createElement('iframe');
+    iframe.name = targetName;
+    iframe.hidden = true;
+    iframe.setAttribute('aria-hidden', 'true');
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `https://formsubmit.co/${encodeURIComponent(FORM_NOTIFICATION_EMAIL)}`;
+    form.target = targetName;
+    form.hidden = true;
+
+    const values = {
+      _subject: subject,
+      _template: 'table',
+      _captcha: 'false',
+      ...fields,
+    };
+    Object.entries(values).forEach(([name, value]) => {
+      if (value == null) return;
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = String(value);
+      form.appendChild(input);
+    });
+
+    document.body.append(iframe, form);
+    form.submit();
+    window.setTimeout(() => {
+      form.remove();
+      iframe.remove();
+    }, 30_000);
+    return true;
   } catch {
     return false;
   }
