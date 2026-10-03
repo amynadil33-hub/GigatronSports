@@ -32,9 +32,7 @@ export default function Contact() {
     setLoading(true);
     setError('');
     try {
-      const { error: err } = await supabase.from('contact_enquiries').insert({ ...form, status: 'new' });
-      if (err) throw err;
-      void sendFormEmail(`New website enquiry: ${form.reason}`, {
+      const emailQueued = sendFormEmail(`New website enquiry: ${form.reason}`, {
         Name: form.name,
         Phone: form.phone || 'Not provided',
         Email: form.email || 'Not provided',
@@ -42,6 +40,19 @@ export default function Contact() {
         Message: form.message,
         _replyto: form.email || undefined,
       });
+      let databaseSaved = false;
+      try {
+        const { error: databaseError } = await supabase
+          .from('contact_enquiries')
+          .insert({ ...form, status: 'new' });
+        databaseSaved = !databaseError;
+        if (databaseError) console.warn('Enquiry database backup failed:', databaseError.message);
+      } catch (databaseError) {
+        console.warn('Enquiry database backup is unavailable:', databaseError);
+      }
+      if (!emailQueued && !databaseSaved) {
+        throw new Error('The enquiry service is temporarily unavailable. Please contact us on WhatsApp.');
+      }
       if (form.email) {
         crmSubscribe({
           email: form.email,
