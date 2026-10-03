@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CartDrawer from '@/components/CartDrawer';
+import WhatsAppButton from '@/components/WhatsAppButton';
 import { fetchSettings, Settings, DEFAULT_SETTINGS } from '@/lib/gigatron';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
@@ -14,6 +15,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <Header />
       <main className="flex-1">{children}</main>
       <Footer settings={settings} />
+      <WhatsAppButton />
       <CartDrawer />
     </div>
   );

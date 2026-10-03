@@ -193,48 +193,17 @@ export const PAYMENT_METHODS = [
 export const CRM_SUBSCRIBE_URL =
   'https://famous.ai/api/crm/6a776d2299c46518de171ddd/subscribe';
 
-export const FORM_NOTIFICATION_EMAIL =
-  import.meta.env.VITE_FORM_NOTIFICATION_EMAIL || 'gigatronsportsweb.mv@gmail.com';
-
-export function sendFormEmail(
+export async function sendFormEmail(
   subject: string,
   fields: Record<string, string | number | boolean | null | undefined>
 ) {
   try {
-    const targetName = `gigatron-email-${Date.now()}`;
-    const iframe = document.createElement('iframe');
-    iframe.name = targetName;
-    iframe.hidden = true;
-    iframe.setAttribute('aria-hidden', 'true');
-
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = `https://formsubmit.co/${encodeURIComponent(FORM_NOTIFICATION_EMAIL)}`;
-    form.target = targetName;
-    form.hidden = true;
-
-    const values = {
-      _subject: subject,
-      _template: 'table',
-      _captcha: 'false',
-      ...fields,
-    };
-    Object.entries(values).forEach(([name, value]) => {
-      if (value == null) return;
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = name;
-      input.value = String(value);
-      form.appendChild(input);
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ _subject: subject, ...fields }),
     });
-
-    document.body.append(iframe, form);
-    form.submit();
-    window.setTimeout(() => {
-      form.remove();
-      iframe.remove();
-    }, 30_000);
-    return true;
+    return response.ok;
   } catch {
     return false;
   }

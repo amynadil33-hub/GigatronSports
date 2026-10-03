@@ -32,7 +32,7 @@ export default function Contact() {
     setLoading(true);
     setError('');
     try {
-      const emailQueued = sendFormEmail(`New website enquiry: ${form.reason}`, {
+      const emailQueued = await sendFormEmail(`New website enquiry: ${form.reason}`, {
         Name: form.name,
         Phone: form.phone || 'Not provided',
         Email: form.email || 'Not provided',
