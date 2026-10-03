@@ -23,7 +23,7 @@ export const DEFAULT_SETTINGS: Record<string, string> = {
   phone: '+960 7964444',
   whatsapp: '9607964444',
   viber: '9607964444',
-  email: 'info@gigatron.mv',
+  email: 'gigatronsportsweb.mv@gmail.com',
   address: 'Maafanu, Majeedhee Magu, Malé, Maldives',
   google_maps_url: 'https://share.google/pJ0IUKCUMIJsiH0Mp',
   facebook_url: 'https://www.facebook.com/p/GigaTron-Maldives-61570513895892/',
@@ -192,6 +192,36 @@ export const PAYMENT_METHODS = [
 
 export const CRM_SUBSCRIBE_URL =
   'https://famous.ai/api/crm/6a776d2299c46518de171ddd/subscribe';
+
+export const FORM_NOTIFICATION_EMAIL =
+  import.meta.env.VITE_FORM_NOTIFICATION_EMAIL || 'gigatronsportsweb.mv@gmail.com';
+
+export async function sendFormEmail(
+  subject: string,
+  fields: Record<string, string | number | boolean | null | undefined>
+) {
+  try {
+    const response = await fetch(
+      `https://formsubmit.co/ajax/${encodeURIComponent(FORM_NOTIFICATION_EMAIL)}`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          _subject: subject,
+          _template: 'table',
+          _captcha: 'false',
+          ...fields,
+        }),
+      }
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
 
 export async function crmSubscribe(payload: {
   email: string;

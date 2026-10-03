@@ -1,37 +1,106 @@
-import { useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, MapPin, Phone, Facebook, Instagram, Music2, Truck, ShieldCheck, Zap } from 'lucide-react';
 import { Product, Settings, formatMVR, waLink, viberLink, SALE_CAMPAIGNS } from '@/lib/gigatron';
 import ProductCard from '@/components/ProductCard';
 import ProductArtwork from '@/components/ProductArtwork';
 
-export function Hero({ s }: { s: Settings }) {
+const HERO_PRODUCT_FALLBACKS = [
+  { name: 'Velocity Run Pro', image: '/images/products/velocity-run-pro.png' },
+  { name: 'Courtline Street', image: '/images/products/courtline-street.png' },
+  { name: 'Club Match Football', image: '/images/products/club-match-football.png' },
+  { name: 'Aeroflex Training Jacket', image: '/images/products/aeroflex-training-jacket.png' },
+];
+
+export function Hero({ s, products = [] }: { s: Settings; products?: Product[] }) {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [carouselPaused, setCarouselPaused] = useState(false);
+  const slides = useMemo(() => {
+    const catalogSlides = products
+      .filter((product) => product.images?.[0])
+      .slice(0, 4)
+      .map((product) => ({ name: product.name, image: product.images![0], handle: product.handle }));
+
+    return catalogSlides.length >= 2 ? catalogSlides : HERO_PRODUCT_FALLBACKS;
+  }, [products]);
+
+  useEffect(() => setActiveSlide(0), [slides]);
+
+  useEffect(() => {
+    if (carouselPaused || slides.length < 2 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => setActiveSlide((current) => (current + 1) % slides.length), 4000);
+    return () => window.clearInterval(timer);
+  }, [carouselPaused, slides.length]);
+
   return (
     <section className="relative min-h-[620px] lg:min-h-[680px] bg-[#111] overflow-hidden flex items-center">
       <img src={s.hero_image} alt="Performance footwear from Gigatron Sports" className="absolute inset-0 h-full w-full object-cover object-[64%_center]" />
-      <div className="absolute inset-0 bg-black/45 lg:bg-gradient-to-r lg:from-black lg:via-black/80 lg:to-black/10" />
+      <div className="absolute inset-0 bg-black/65 lg:bg-gradient-to-r lg:from-black lg:via-black/90 lg:to-black/45" />
       <div className="absolute inset-0 hex-grid opacity-10" aria-hidden="true" />
       <div className="relative max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-20">
-        <div className="max-w-2xl">
-          <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[#FFC21C]">
-            Gigatron Sports <span className="h-px w-10 bg-[#FFC21C]" />
-          </span>
-          <h1 className="mt-6 text-5xl sm:text-6xl lg:text-8xl font-black tracking-[-0.055em] text-white leading-[0.9]">
-            {s.hero_title}
-          </h1>
-          <p className="mt-7 text-white/70 text-base sm:text-lg max-w-xl leading-relaxed">{s.hero_subtitle}</p>
-          <div className="mt-9 flex flex-wrap gap-3">
-            <Link to={s.hero_cta_url || '/products'} className="inline-flex items-center gap-2 bg-[#FFC21C] text-[#111] font-extrabold px-7 py-4 rounded-full hover:bg-white transition">
-              {s.hero_cta_text} <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link to={s.hero_secondary_cta_url || '/products?new=true'} className="inline-flex items-center gap-2 border border-white/35 text-white font-bold px-7 py-4 rounded-full hover:border-white transition">
-              {s.hero_secondary_cta_text || 'Latest Drops'}
-            </Link>
+        <div className="grid items-center gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(340px,.75fr)]">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.24em] text-[#FFC21C]">
+              Gigatron Sports <span className="h-px w-10 bg-[#FFC21C]" />
+            </span>
+            <h1 className="mt-6 text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-black tracking-[-0.055em] text-white leading-[0.9]">
+              {s.hero_title}
+            </h1>
+            <p className="mt-7 text-white/70 text-base sm:text-lg max-w-xl leading-relaxed">{s.hero_subtitle}</p>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <Link to={s.hero_cta_url || '/products'} className="inline-flex items-center gap-2 bg-[#FFC21C] text-[#111] font-extrabold px-7 py-4 rounded-full hover:bg-white transition">
+                {s.hero_cta_text} <ArrowRight className="w-4 h-4" />
+              </Link>
+              <Link to={s.hero_secondary_cta_url || '/products?new=true'} className="inline-flex items-center gap-2 border border-white/35 text-white font-bold px-7 py-4 rounded-full hover:border-white transition">
+                {s.hero_secondary_cta_text || 'Latest Drops'}
+              </Link>
+            </div>
+            <div className="mt-12 flex flex-wrap gap-6 text-white/55 text-[10px] font-bold uppercase tracking-[0.16em]">
+              <span className="flex items-center gap-2"><Truck className="w-4 h-4 text-[#FFC21C]" /> Delivery available</span>
+              <span className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-[#FFC21C]" /> Genuine products</span>
+              <span className="flex items-center gap-2"><Zap className="w-4 h-4 text-[#FFC21C]" /> Ready to move</span>
+            </div>
           </div>
-          <div className="mt-12 flex flex-wrap gap-6 text-white/55 text-[10px] font-bold uppercase tracking-[0.16em]">
-            <span className="flex items-center gap-2"><Truck className="w-4 h-4 text-[#FFC21C]" /> Delivery available</span>
-            <span className="flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-[#FFC21C]" /> Genuine products</span>
-            <span className="flex items-center gap-2"><Zap className="w-4 h-4 text-[#FFC21C]" /> Ready to move</span>
+
+          <div
+            className="relative mx-auto w-full max-w-[460px]"
+            onMouseEnter={() => setCarouselPaused(true)}
+            onMouseLeave={() => setCarouselPaused(false)}
+          >
+            <div className="absolute -inset-8 rounded-full bg-[#FFC21C]/15 blur-3xl" aria-hidden="true" />
+            <div className="relative aspect-[5/4] overflow-hidden rounded-[2rem] border border-white/15 bg-white/5 shadow-2xl backdrop-blur-sm">
+              {slides.map((slide, index) => {
+                const image = <img src={slide.image} alt={slide.name} className="h-full w-full object-cover" />;
+                return (
+                  <div
+                    key={`${slide.name}-${slide.image}`}
+                    className={`absolute inset-0 transition-all duration-700 ease-out ${index === activeSlide ? 'scale-100 opacity-100' : 'pointer-events-none scale-105 opacity-0'}`}
+                    aria-hidden={index !== activeSlide}
+                  >
+                    {'handle' in slide && slide.handle ? <Link to={`/products/${slide.handle}`} tabIndex={index === activeSlide ? 0 : -1}>{image}</Link> : image}
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/45 to-transparent p-6 pt-16">
+                      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#FFC21C]">Featured product</p>
+                      <p className="mt-1 text-xl font-black text-white">{slide.name}</p>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="absolute right-5 top-5 rounded-full bg-black/55 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-white backdrop-blur-md">
+                {String(activeSlide + 1).padStart(2, '0')} / {String(slides.length).padStart(2, '0')}
+              </div>
+            </div>
+            <div className="relative mt-5 flex items-center justify-center gap-2" aria-label="Choose featured product">
+              {slides.map((slide, index) => (
+                <button
+                  key={slide.image}
+                  type="button"
+                  onClick={() => setActiveSlide(index)}
+                  aria-label={`Show ${slide.name}`}
+                  aria-current={index === activeSlide}
+                  className={`h-1.5 rounded-full transition-all ${index === activeSlide ? 'w-9 bg-[#FFC21C]' : 'w-3 bg-white/30 hover:bg-white/60'}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

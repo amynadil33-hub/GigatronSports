@@ -3,12 +3,15 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 export interface CartItem {
   product_id: string;
   variant_id?: string;
+  promotion_id?: string;
   handle: string;
   quantity: number;
   name: string;
   variant_title?: string;
   sku?: string;
   price: number; // cents
+  original_price?: number;
+  promotion_label?: string;
   image?: string;
 }
 
@@ -51,7 +54,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       );
       let next: CartItem[];
       if (idx >= 0) {
-        next = prev.map((i, n) => (n === idx ? { ...i, quantity: i.quantity + qty } : i));
+        next = prev.map((i, n) => (n === idx ? { ...i, ...item, quantity: i.quantity + qty } : i));
       } else {
         next = [...prev, { ...item, quantity: qty }];
       }

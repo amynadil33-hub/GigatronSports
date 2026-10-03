@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { Search, SlidersHorizontal, X, ChevronDown } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { Product, PRODUCT_SELECT, ProductFilterDefinition, isSportsProduct, SALE_CAMPAIGNS, Settings, DEFAULT_SETTINGS, fetchSettings } from '@/lib/gigatron';
+import { Product, PRODUCT_SELECT, ProductFilterDefinition } from '@/lib/gigatron';
 import Layout from '@/components/Layout';
 import { CategoryTabs, ProductGrid } from '@/components/HomeSections';
 import { mergeTemporaryShoeCatalogue } from '@/data/shoeCatalogue';
@@ -12,6 +12,8 @@ const PROMOTION_FILTER_ID = 'built-in-promotion';
 const CORE_PROMOTION_OPTIONS = [
   { value: 'featured', label: 'Featured' },
   { value: 'new_arrival', label: 'New Arrival' },
+  { value: 'best_seller', label: 'Best Seller' },
+  { value: 'hot_sale', label: 'Hot Sale' },
 ];
 
 const normalizedValue = (value?: string | null) => String(value || '').trim().toLowerCase();
@@ -31,7 +33,6 @@ export default function Products() {
   const [visible, setVisible] = useState(12);
   const [loading, setLoading] = useState(true);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
 
   useEffect(() => { (async () => {
     const [p, c, l, f, v] = await Promise.all([
@@ -41,28 +42,20 @@ export default function Products() {
       supabase.from('product_filters').select('*, options:product_filter_options(*)').eq('is_active', true).order('sort_order'),
       supabase.from('product_filter_values').select('product_id,option_id'),
     ]);
-    const sportsProducts = mergeTemporaryShoeCatalogue(((p.data as Product[]) || []).filter(isSportsProduct));
-    setProducts(sportsProducts);
-    const sportsProductIds = new Set(sportsProducts.map((product) => product.id));
+    const catalogueProducts = mergeTemporaryShoeCatalogue((p.data as Product[]) || []);
+    setProducts(catalogueProducts);
+    const productIds = new Set(catalogueProducts.map((product) => product.id));
     const cm: Record<string,string[]> = {};
-    (c.data || []).forEach((cat:any) => { cm[cat.handle] = (l.data || []).filter((x:any)=>x.collection_id===cat.id && sportsProductIds.has(x.product_id)).map((x:any)=>x.product_id); });
-    cm.footwear = Array.from(new Set([...(cm.footwear || []), ...sportsProducts.filter((product)=>product.product_type?.toLowerCase()==='footwear').map((product)=>product.id)]));
-    const visibleCategories = (c.data || []).filter((cat:any)=>(cm[cat.handle] || []).length && /footwear|shoe|apparel|accessor|equipment/i.test(cat.handle)).map((cat:any)=>({handle:cat.handle,title:cat.title}));
+    (c.data || []).forEach((cat:any) => { cm[cat.handle] = (l.data || []).filter((x:any)=>x.collection_id===cat.id && productIds.has(x.product_id)).map((x:any)=>x.product_id); });
+    cm.footwear = Array.from(new Set([...(cm.footwear || []), ...catalogueProducts.filter((product)=>product.product_type?.toLowerCase()==='footwear').map((product)=>product.id)]));
+    const visibleCategories = (c.data || []).filter((cat:any)=>(cm[cat.handle] || []).length).map((cat:any)=>({handle:cat.handle,title:cat.title}));
     setCatMap(cm); setCategories(visibleCategories.some((category)=>category.handle==='footwear')?visibleCategories:[{handle:'footwear',title:'Footwear'},...visibleCategories]);
     setFilters(((f.data || []) as any[]).map((x)=>({...x,options:(x.options||[]).filter((o:any)=>o.is_active).sort((a:any,b:any)=>a.sort_order-b.sort_order)})));
     const vm: Record<string,string[]> = {}; (v.data || []).forEach((x:any)=>{ vm[x.product_id] = [...(vm[x.product_id] || []), x.option_id]; });
     setValueMap(vm); setLoading(false);
   })(); }, []);
 
-  useEffect(() => { fetchSettings().then(setSettings); }, []);
-
-  const promotionOptions = useMemo(() => [
-    ...CORE_PROMOTION_OPTIONS,
-    ...SALE_CAMPAIGNS
-      .filter((sale) => settings[`sale_${sale.id}_enabled`] !== 'false')
-      .sort((a, b) => Number(settings[`sale_${a.id}_order`] || 99) - Number(settings[`sale_${b.id}_order`] || 99))
-      .map((sale) => ({ value: sale.id, label: `${settings[`sale_${sale.id}_emoji`] || sale.emoji} ${settings[`sale_${sale.id}_label`] || sale.label}` })),
-  ], [settings]);
+  const promotionOptions = CORE_PROMOTION_OPTIONS;
 
   const displayFilters = useMemo<ProductFilterDefinition[]>(() => {
     const productTypes = Array.from(
@@ -111,7 +104,7 @@ export default function Products() {
       })),
     });
     return [...builtInFilters, ...filters];
-  }, [filters, products, promotionOptions]);
+  }, [filters, products]);
 
   const filtered = useMemo(() => {
     let list = [...products];

@@ -12,13 +12,14 @@ import {
   fetchSettings,
   Settings,
   waLink,
-  isSportsProduct,
 } from '@/lib/gigatron';
 import Layout from '@/components/Layout';
 import { useCart } from '@/contexts/CartContext';
 import ProductCard from '@/components/ProductCard';
 import ProductArtwork from '@/components/ProductArtwork';
 import { mergeTemporaryShoeCatalogue, TEMPORARY_SHOE_CATALOGUE } from '@/data/shoeCatalogue';
+import { Countdown } from '@/components/Promotions';
+import { fetchPromotions, Promotion, PromotionItem, savings } from '@/lib/promotions';
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
@@ -32,6 +33,7 @@ export default function ProductDetail() {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [added, setAdded] = useState(false);
+  const [activeOffer, setActiveOffer] = useState<{ promotion: Promotion; item: PromotionItem } | null>(null);
 
   useEffect(() => {
     fetchSettings().then(setSettings);
@@ -44,6 +46,7 @@ export default function ProductDetail() {
       setSelectedOption('');
       setImgIdx(0);
       setQty(1);
+      setActiveOffer(null);
 
       const { data } = await supabase
         .from('ecom_products')
@@ -52,7 +55,7 @@ export default function ProductDetail() {
         .maybeSingle();
 
       const suppliedProduct = TEMPORARY_SHOE_CATALOGUE.find((item) => item.handle === handle);
-      const selectedProduct = data && isSportsProduct(data as Product) ? (data as Product) : suppliedProduct;
+      const selectedProduct = data ? (data as Product) : suppliedProduct;
 
       if (selectedProduct) {
         const p = { ...selectedProduct };
@@ -67,6 +70,10 @@ export default function ProductDetail() {
           p.variants = variants;
         }
         setProduct(p);
+        const campaigns = await fetchPromotions();
+        const campaign = campaigns.find((row) => row.kind !== 'bundle_save' && row.items.some((item) => item.product_id === p.id && item.offer_price != null));
+        const campaignItem = campaign?.items.find((item) => item.product_id === p.id);
+        if (campaign && campaignItem) setActiveOffer({ promotion: campaign, item: campaignItem });
         if (variants.length > 0) {
           const sorted = [...variants].sort((a, b) => (a.position || 0) - (b.position || 0));
           const first = sorted.find((v) => v.inventory_qty == null || v.inventory_qty > 0) || sorted[0];
@@ -80,7 +87,7 @@ export default function ProductDetail() {
           .eq('status', 'active')
           .neq('id', p.id)
           .limit(4);
-        setRelated(mergeTemporaryShoeCatalogue(((rel as Product[]) || []).filter(isSportsProduct)).filter((item) => item.handle !== p.handle).slice(0, 4));
+        setRelated(mergeTemporaryShoeCatalogue((rel as Product[]) || []).filter((item) => item.handle !== p.handle).slice(0, 4));
       } else {
         setProduct(null);
       }
@@ -124,7 +131,9 @@ export default function ProductDetail() {
     return product.inventory_qty > 0;
   };
   const inStock = getInStock();
-  const price = selectedVariant?.price || product.price;
+  const originalPrice = selectedVariant?.price || product.price;
+  const price = activeOffer?.item.offer_price != null ? Math.min(originalPrice, activeOffer.item.offer_price) : originalPrice;
+  const saved = savings(originalPrice, price);
   const { isNew, isHot, freeDelivery } = productBadges(product);
   const images = product.images || [];
   const specs = product.metadata || {};
@@ -150,6 +159,9 @@ export default function ProductDetail() {
         variant_title: selectedVariant?.title || (hasVariants ? selectedOption : undefined),
         sku: selectedVariant?.sku || product.sku || product.handle,
         price,
+        original_price: saved.amount ? originalPrice : undefined,
+        promotion_id: activeOffer?.promotion.id,
+        promotion_label: activeOffer?.promotion.label || activeOffer?.promotion.title,
         image: images[0],
       },
       qty
@@ -201,7 +213,9 @@ export default function ProductDetail() {
               <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-neutral-400">{product.vendor}</p>
             )}
             <h1 className="mt-2 text-3xl sm:text-4xl font-black tracking-tight leading-tight">{product.name}</h1>
-            <p className="mt-4 text-3xl font-black text-neutral-900">{formatMVR(price)}</p>
+            {activeOffer && <span className="mt-4 inline-flex rounded-full bg-[#FF1717] px-3 py-1.5 text-xs font-black uppercase tracking-wider text-white">{activeOffer.promotion.label || activeOffer.promotion.title}</span>}
+            <div className="mt-4 flex flex-wrap items-end gap-3">{saved.amount > 0 && <span className="text-lg text-neutral-400 line-through">{formatMVR(originalPrice)}</span>}<p className={`text-3xl font-black ${saved.amount > 0 ? 'text-[#D80F0F]' : 'text-neutral-900'}`}>{formatMVR(price)}</p>{saved.amount > 0 && <span className="pb-1 text-sm font-bold text-emerald-700">Save {formatMVR(saved.amount)} ({saved.percent}%)</span>}</div>
+            {activeOffer?.promotion.countdown_enabled && activeOffer.promotion.ends_at && <div className="mt-4"><Countdown endsAt={activeOffer.promotion.ends_at} compact /></div>}
             <p className={`mt-2 text-sm font-semibold ${inStock ? 'text-green-600' : 'text-[#FF1717]'}`}>
               {inStock ? 'In Stock' : 'Out of Stock'}
             </p>

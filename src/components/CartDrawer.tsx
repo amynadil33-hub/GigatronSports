@@ -66,6 +66,8 @@ export default function CartDrawer() {
                 {item.variant_title && (
                   <p className="text-xs text-neutral-500 mt-0.5">{item.variant_title}</p>
                 )}
+                {item.promotion_label && <p className="mt-1 text-[10px] font-bold uppercase tracking-wider text-[#B78600]">{item.promotion_label}</p>}
+                {item.original_price && item.original_price > item.price && <p className="text-xs text-neutral-400 line-through">{formatMVR(item.original_price)}</p>}
                 <p className="text-sm font-bold mt-1">{formatMVR(item.price)}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <div className="flex items-center border border-neutral-200 rounded-lg">

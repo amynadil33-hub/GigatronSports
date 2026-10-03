@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, MapPin, Phone, MessageCircle } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
-import { fetchSettings, DEFAULT_SETTINGS, Settings, waLink, viberLink, crmSubscribe } from '@/lib/gigatron';
+import { fetchSettings, DEFAULT_SETTINGS, Settings, waLink, viberLink, crmSubscribe, sendFormEmail } from '@/lib/gigatron';
 import { LocationSection } from '@/components/HomeSections';
 
 const REASONS = ['Product Enquiry', 'Order Enquiry', 'General Enquiry'];
@@ -34,6 +34,14 @@ export default function Contact() {
     try {
       const { error: err } = await supabase.from('contact_enquiries').insert({ ...form, status: 'new' });
       if (err) throw err;
+      void sendFormEmail(`New website enquiry: ${form.reason}`, {
+        Name: form.name,
+        Phone: form.phone || 'Not provided',
+        Email: form.email || 'Not provided',
+        Reason: form.reason,
+        Message: form.message,
+        _replyto: form.email || undefined,
+      });
       if (form.email) {
         crmSubscribe({
           email: form.email,

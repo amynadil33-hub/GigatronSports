@@ -4,7 +4,7 @@ import { Lock } from 'lucide-react';
 import Layout from '@/components/Layout';
 import { supabase } from '@/lib/supabase';
 import { useCart } from '@/contexts/CartContext';
-import { formatMVR, PAYMENT_METHODS, crmSubscribe } from '@/lib/gigatron';
+import { formatMVR, PAYMENT_METHODS, crmSubscribe, sendFormEmail } from '@/lib/gigatron';
 
 export default function Checkout() {
   const { cart, subtotal, clearCart } = useCart();
@@ -41,6 +41,7 @@ export default function Checkout() {
       const items = cart.map((i) => ({
         product_id: i.product_id,
         variant_id: i.variant_id || null,
+        promotion_id: i.promotion_id || null,
         quantity: i.quantity,
       }));
       const { data: order, error: orderErr } = await supabase.rpc('place_order', {
@@ -59,6 +60,19 @@ export default function Checkout() {
         }`,
       });
       if (orderErr) throw orderErr;
+
+      void sendFormEmail(`New website order: ${order.order_number}`, {
+        'Order number': order.order_number,
+        Customer: form.name,
+        Mobile: form.mobile,
+        Email: form.email || 'Not provided',
+        Address: `${form.address}, ${form.city_island}`,
+        'Payment method': PAYMENT_METHODS.find((payment) => payment.id === form.payment_method)?.label || form.payment_method,
+        Items: cart.map((item) => `${item.name}${item.variant_title ? ` (${item.variant_title})` : ''} × ${item.quantity} — ${formatMVR(item.price * item.quantity)}`).join('\n'),
+        Total: formatMVR(order.total ?? total),
+        Notes: form.notes || 'None',
+        _replyto: form.email || undefined,
+      });
 
       if (form.email) {
         crmSubscribe({
