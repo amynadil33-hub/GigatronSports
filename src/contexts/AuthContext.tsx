@@ -68,7 +68,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    return { error: error?.message ?? null };
+    if (!error) return { error: null };
+
+    const message = error.message.toLowerCase();
+    if (message.includes('failed to fetch') || message.includes('network')) {
+      return { error: 'The authentication service is unavailable. Please check the Supabase project configuration.' };
+    }
+
+    return { error: error.message };
   };
 
   const signOut = async () => {
