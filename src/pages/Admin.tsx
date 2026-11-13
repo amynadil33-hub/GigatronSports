@@ -41,7 +41,7 @@ const input =
   'w-full border border-neutral-300 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-[#FFC21C] focus:ring-2 focus:ring-[#FFC21C]/30';
 
 function Login() {
-  const { signIn, user, isAdmin, signOut } = useAuth();
+  const { signIn, user, isAdmin, adminCheckError, signOut } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [msg, setMsg] = useState('');
@@ -71,7 +71,7 @@ function Login() {
         </form>
         {user && !isAdmin && (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-            This account does not have administrator access.
+            {adminCheckError || 'This account does not have administrator access.'}
             <button type="button" onClick={signOut} className="mt-2 block font-bold underline">Sign out</button>
           </div>
         )}
