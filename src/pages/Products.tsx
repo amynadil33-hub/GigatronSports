@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase';
 import { Product, PRODUCT_SELECT, ProductFilterDefinition } from '@/lib/gigatron';
 import Layout from '@/components/Layout';
 import { CategoryTabs, ProductGrid } from '@/components/HomeSections';
-import { mergeTemporaryShoeCatalogue } from '@/data/shoeCatalogue';
 
 const PRODUCT_TYPE_FILTER_ID = 'built-in-product-type';
 const PROMOTION_FILTER_ID = 'built-in-promotion';
@@ -42,7 +41,7 @@ export default function Products() {
       supabase.from('product_filters').select('*, options:product_filter_options(*)').eq('is_active', true).order('sort_order'),
       supabase.from('product_filter_values').select('product_id,option_id'),
     ]);
-    const catalogueProducts = mergeTemporaryShoeCatalogue((p.data as Product[]) || []);
+    const catalogueProducts = (p.data as Product[]) || [];
     setProducts(catalogueProducts);
     const productIds = new Set(catalogueProducts.map((product) => product.id));
     const cm: Record<string,string[]> = {};

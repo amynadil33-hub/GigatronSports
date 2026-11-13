@@ -84,7 +84,10 @@ export default function PromotionsManager({ products }: { products: Product[] })
     if (draft.startsAt && draft.endsAt && new Date(draft.endsAt) <= new Date(draft.startsAt)) return setMessage('End date must be after the start date.');
     const selected = Object.entries(productDrafts).filter(([, value]) => value.selected);
     if (!selected.length) return setMessage('Select at least one product.');
+    if (draft.kind === 'bundle_save' && selected.length < 2) return setMessage('A bundle needs at least two products.');
     if (draft.kind === 'bundle_save' && !Number(draft.bundlePrice)) return setMessage('Enter a bundle price.');
+    const selectedOriginalPrice = selected.reduce((sum, [productId]) => sum + (products.find((product) => product.id === productId)?.price || 0), 0);
+    if (draft.kind === 'bundle_save' && Number(draft.bundlePrice) * 100 >= selectedOriginalPrice) return setMessage('Bundle price must be lower than the products’ regular total.');
     setSaving(true);
     setMessage('');
     const payload = {
@@ -152,6 +155,9 @@ export default function PromotionsManager({ products }: { products: Product[] })
   if (editing !== undefined) {
     const isBundle = draft.kind === 'bundle_save';
     const selectedCount = Object.values(productDrafts).filter((value) => value.selected).length;
+    const selectedTotal = Object.entries(productDrafts).reduce((sum, [productId, value]) => value.selected ? sum + (products.find((product) => product.id === productId)?.price || 0) : sum, 0);
+    const bundlePrice = Math.round(Number(draft.bundlePrice || 0) * 100);
+    const bundleSaving = Math.max(0, selectedTotal - bundlePrice);
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-4"><div><button onClick={() => setEditing(undefined)} className="text-sm font-bold text-neutral-500">← Promotions</button><h1 className="mt-2 text-2xl font-black">{editing ? 'Edit Promotion' : 'New Promotion'}</h1></div><button onClick={() => setEditing(undefined)} className="grid h-10 w-10 place-items-center rounded-full border bg-white" aria-label="Close"><X className="h-4 w-4" /></button></div>
@@ -163,7 +169,7 @@ export default function PromotionsManager({ products }: { products: Product[] })
           <div className="sm:col-span-2"><label className={label}>Description</label><textarea className={`${input} min-h-24`} value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} /></div>
           <div><label className={label}>Badge / label</label><input className={input} value={draft.label} onChange={(event) => setDraft((current) => ({ ...current, label: event.target.value }))} placeholder="Today Only" /></div>
           <div><label className={label}>Homepage order</label><input type="number" className={input} value={draft.sortOrder} onChange={(event) => setDraft((current) => ({ ...current, sortOrder: event.target.value }))} /></div>
-          {isBundle && <div><label className={label}>Bundle price (MVR) *</label><input type="number" min="0" step="0.01" className={input} value={draft.bundlePrice} onChange={(event) => setDraft((current) => ({ ...current, bundlePrice: event.target.value }))} /></div>}
+          {isBundle && <div><label className={label}>Bundle price (MVR) *</label><input type="number" min="0" step="0.01" className={input} value={draft.bundlePrice} onChange={(event) => setDraft((current) => ({ ...current, bundlePrice: event.target.value }))} />{selectedCount > 0 && <p className="mt-2 text-xs text-neutral-500">Regular total: <strong>{formatMVR(selectedTotal)}</strong>{bundlePrice > 0 && bundleSaving > 0 ? <> · Customer saves <strong className="text-emerald-700">{formatMVR(bundleSaving)}</strong></> : null}</p>}</div>}
           <div><label className={label}>Start date & time</label><input type="datetime-local" className={input} value={draft.startsAt} onChange={(event) => setDraft((current) => ({ ...current, startsAt: event.target.value }))} /></div>
           <div><label className={label}>End date & time</label><input type="datetime-local" className={input} value={draft.endsAt} onChange={(event) => setDraft((current) => ({ ...current, endsAt: event.target.value }))} /></div>
           <div className="sm:col-span-2"><label className={label}>Promotional banner</label><ImageUploader images={draft.bannerUrl ? [draft.bannerUrl] : []} onChange={(images) => setDraft((current) => ({ ...current, bannerUrl: images[0] || '' }))} /></div>

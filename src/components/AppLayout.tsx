@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase';
 import { Product, Settings, DEFAULT_SETTINGS, fetchSettings, PRODUCT_SELECT } from '@/lib/gigatron';
 import Layout from '@/components/Layout';
 import { Hero, CategoryTabs, SectionHeading, ProductGrid, LatestDrops, SportsPromo, LocationSection } from '@/components/HomeSections';
-import { mergeTemporaryShoeCatalogue } from '@/data/shoeCatalogue';
 import { fetchPromotions, isPromotionLive, Promotion, PromotionKind } from '@/lib/promotions';
 import { PromotionSection, TaggedProductSection } from '@/components/Promotions';
 
@@ -27,7 +26,9 @@ export default function AppLayout() {
         supabase.from('ecom_collections').select('id,title,handle').eq('is_visible', true).order('title', { ascending: true }),
         supabase.from('ecom_product_collections').select('product_id,collection_id'),
       ]);
-      const catalogueProducts = mergeTemporaryShoeCatalogue((prods as Product[]) || []);
+      // The database is the source of truth. Do not merge the old preview catalogue:
+      // those synthetic rows cannot be managed or deleted from Admin.
+      const catalogueProducts = (prods as Product[]) || [];
       setProducts(catalogueProducts);
       const productIds = new Set(catalogueProducts.map((product) => product.id));
       const map: Record<string, string[]> = {};
@@ -41,8 +42,9 @@ export default function AppLayout() {
   }, []);
 
   const catFiltered = useMemo(() => activeCat === 'all' ? products : products.filter((p) => (catMap[activeCat] || []).includes(p.id)), [products, activeCat, catMap]);
-  const featured = catFiltered.filter((p) => (p.tags || []).includes('featured'));
-  const showcase = (featured.length ? featured : catFiltered).slice(0, 12);
+  // Products arrive newest-first from Supabase, so newly added admin products
+  // should lead this grid even when older products are tagged as featured.
+  const showcase = catFiltered.slice(0, 12);
   const latest = useMemo(() => {
     const drops = products.filter((p) => (p.tags || []).includes('new_arrival'));
     const footwearIds = new Set(Object.entries(catMap).filter(([h]) => /footwear|shoe|sneaker/i.test(h)).flatMap(([, ids]) => ids));

@@ -17,7 +17,6 @@ import Layout from '@/components/Layout';
 import { useCart } from '@/contexts/CartContext';
 import ProductCard from '@/components/ProductCard';
 import ProductArtwork from '@/components/ProductArtwork';
-import { mergeTemporaryShoeCatalogue, TEMPORARY_SHOE_CATALOGUE } from '@/data/shoeCatalogue';
 import { Countdown } from '@/components/Promotions';
 import { fetchPromotions, Promotion, PromotionItem, savings } from '@/lib/promotions';
 
@@ -54,8 +53,7 @@ export default function ProductDetail() {
         .eq('handle', handle)
         .maybeSingle();
 
-      const suppliedProduct = TEMPORARY_SHOE_CATALOGUE.find((item) => item.handle === handle);
-      const selectedProduct = data ? (data as Product) : suppliedProduct;
+      const selectedProduct = data as Product | null;
 
       if (selectedProduct) {
         const p = { ...selectedProduct };
@@ -86,8 +84,9 @@ export default function ProductDetail() {
           .select(PRODUCT_SELECT)
           .eq('status', 'active')
           .neq('id', p.id)
+          .order('created_at', { ascending: false })
           .limit(4);
-        setRelated(mergeTemporaryShoeCatalogue((rel as Product[]) || []).filter((item) => item.handle !== p.handle).slice(0, 4));
+        setRelated((rel as Product[]) || []);
       } else {
         setProduct(null);
       }
